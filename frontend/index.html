@@ -1,0 +1,358 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <title>Lecture Feedback MVP Demo</title>
+  <style>
+    body {
+      font-family: system-ui, sans-serif;
+      max-width: 960px;
+      margin: 32px auto;
+      line-height: 1.6;
+    }
+    section {
+      border: 1px solid #ddd;
+      border-radius: 12px;
+      padding: 16px;
+      margin: 18px 0;
+    }
+    input, textarea, button {
+      font: inherit;
+      box-sizing: border-box;
+      width: 100%;
+      padding: 8px;
+      margin: 6px 0 12px;
+    }
+    button {
+      cursor: pointer;
+      font-weight: 700;
+    }
+    .question {
+      border-top: 1px solid #eee;
+      padding-top: 12px;
+      margin-top: 12px;
+    }
+    .choice {
+      display: block;
+      margin: 6px 0;
+    }
+    .choice input {
+      width: auto;
+      margin-right: 8px;
+    }
+    pre {
+      background: #f6f6f6;
+      padding: 12px;
+      border-radius: 8px;
+      overflow: auto;
+      white-space: pre-wrap;
+    }
+    .note {
+      color: #666;
+      font-size: 0.9em;
+    }
+  </style>
+</head>
+<body>
+  <h1>Lecture Feedback MVP Demo</h1>
+
+  <section>
+    <h2>0. API設定</h2>
+    <label>Lambda Function URL</label>
+    <input id="apiUrl" value="https://iwob7ic2gdtpa3nlrzkligg2xa0gmafn.lambda-url.ap-northeast-1.on.aws/">
+    <p class="note">デモ用の認証なしURLです。外部共有には注意してください。</p>
+  </section>
+
+  <section>
+    <h2>1. テキストから小テスト生成</h2>
+
+    <label>講義タイトル</label>
+    <input id="textTitle" value="生成AI入門">
+
+    <label>問題数</label>
+    <input id="textNumQuestions" type="number" value="3" min="1" max="10">
+
+    <label>講義テキスト</label>
+    <textarea id="lectureText" rows="7">生成AIは、大量のデータから学習したモデルを用いて、文章、画像、音声、プログラムなどの新しいコンテンツを生成する技術である。大規模言語モデルは、入力された文章の文脈を理解し、次に続く単語を予測することで自然な文章を生成する。大学教育では、教材作成、質問応答、レポートのフィードバック、小テスト生成などに応用できる。一方で、生成AIは誤った情報をもっともらしく出力することがあり、この現象はハルシネーションと呼ばれる。</textarea>
+
+    <button onclick="generateQuizFromText()">テキストから小テスト生成</button>
+  </section>
+
+  <section>
+    <h2>2. PDFから小テスト生成</h2>
+
+    <label>講義タイトル</label>
+    <input id="pdfTitle" value="PDF Lecture Test">
+
+    <label>問題数</label>
+    <input id="pdfNumQuestions" type="number" value="3" min="1" max="10">
+
+    <label>PDFファイル</label>
+    <input id="pdfFile" type="file" accept="application/pdf">
+
+    <p class="note">最初は数ページ程度の小さいPDFで試してください。大きいPDFはこの簡易方式では失敗する可能性があります。</p>
+
+    <button onclick="generateQuizFromPdf()">PDFから小テスト生成</button>
+  </section>
+
+  <section>
+    <h2>3. 学生用クイズ取得・回答</h2>
+
+    <label>quiz_id</label>
+    <input id="quizId" placeholder="quiz_xxxxxxxxxxxx">
+
+    <label>student_id</label>
+    <input id="studentId" value="student_browser_001">
+
+    <label>student_name</label>
+    <input id="studentName" value="browser demo student">
+
+    <button onclick="loadQuiz()">クイズを読み込む</button>
+
+    <form id="quizForm"></form>
+
+    <button type="button" onclick="submitAnswer()">回答を送信</button>
+  </section>
+
+  <section>
+    <h2>4. 結果分析</h2>
+
+    <label>quiz_id</label>
+    <input id="resultsQuizId" placeholder="quiz_xxxxxxxxxxxx">
+
+    <button onclick="getResults()">結果分析を取得</button>
+  </section>
+
+  <section>
+    <h2>出力</h2>
+    <pre id="output">ここに結果が表示されます。</pre>
+  </section>
+
+  <script>
+    let currentQuiz = null;
+
+    function show(data) {
+      const output = document.getElementById("output");
+      if (typeof data === "string") {
+        output.textContent = data;
+      } else {
+        output.textContent = JSON.stringify(data, null, 2);
+      }
+    }
+
+    async function callApi(payload) {
+      const apiUrl = document.getElementById("apiUrl").value.trim();
+
+      const res = await fetch(apiUrl, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify(payload)
+      });
+
+      const text = await res.text();
+
+      try {
+        return JSON.parse(text);
+      } catch (e) {
+        throw new Error("JSONとして読めない応答です: " + text);
+      }
+    }
+
+    async function generateQuizFromText() {
+      try {
+        show("テキストから小テスト生成中...");
+
+        const body = await callApi({
+          action: "generate_quiz",
+          title: document.getElementById("textTitle").value,
+          lecture_text: document.getElementById("lectureText").value,
+          num_questions: Number(document.getElementById("textNumQuestions").value)
+        });
+
+        if (body.quiz_id) {
+          document.getElementById("quizId").value = body.quiz_id;
+          document.getElementById("resultsQuizId").value = body.quiz_id;
+        }
+
+        show(body);
+      } catch (e) {
+        show({ error: e.message });
+      }
+    }
+
+    function readFileAsBase64(file) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+
+        reader.onload = () => {
+          const dataUrl = String(reader.result);
+          const base64 = dataUrl.split(",", 2)[1];
+          resolve(base64);
+        };
+
+        reader.onerror = () => reject(reader.error);
+        reader.readAsDataURL(file);
+      });
+    }
+
+    async function generateQuizFromPdf() {
+      try {
+        const file = document.getElementById("pdfFile").files[0];
+
+        if (!file) {
+          show({ error: "PDFファイルを選択してください。" });
+          return;
+        }
+
+        show("PDFをbase64に変換中...");
+
+        const pdfBase64 = await readFileAsBase64(file);
+
+        show("PDFから小テスト生成中...");
+
+        const body = await callApi({
+          action: "upload_pdf_and_generate_quiz",
+          title: document.getElementById("pdfTitle").value,
+          filename: file.name,
+          pdf_base64: pdfBase64,
+          num_questions: Number(document.getElementById("pdfNumQuestions").value),
+          max_chars: 8000
+        });
+
+        if (body.quiz_id) {
+          document.getElementById("quizId").value = body.quiz_id;
+          document.getElementById("resultsQuizId").value = body.quiz_id;
+        }
+
+        show(body);
+      } catch (e) {
+        show({ error: e.message });
+      }
+    }
+
+    async function loadQuiz() {
+      try {
+        const quizId = document.getElementById("quizId").value.trim();
+
+        if (!quizId) {
+          show({ error: "quiz_idを入力してください。" });
+          return;
+        }
+
+        show("クイズ取得中...");
+
+        const body = await callApi({
+          action: "get_quiz",
+          quiz_id: quizId
+        });
+
+        currentQuiz = body;
+        renderQuiz(body);
+        show(body);
+      } catch (e) {
+        show({ error: e.message });
+      }
+    }
+
+    function renderQuiz(quiz) {
+      const form = document.getElementById("quizForm");
+      form.innerHTML = "";
+
+      if (!quiz.questions || quiz.questions.length === 0) {
+        form.innerHTML = "<p>問題がありません。</p>";
+        return;
+      }
+
+      quiz.questions.forEach((q, index) => {
+        const div = document.createElement("div");
+        div.className = "question";
+
+        const title = document.createElement("p");
+        title.innerHTML = "<strong>" + (index + 1) + ". " + escapeHtml(q.question) + "</strong>";
+        div.appendChild(title);
+
+        q.choices.forEach((choice, choiceIndex) => {
+          const label = document.createElement("label");
+          label.className = "choice";
+
+          const radio = document.createElement("input");
+          radio.type = "radio";
+          radio.name = q.question_id;
+          radio.value = choiceIndex;
+
+          label.appendChild(radio);
+          label.appendChild(document.createTextNode(choiceIndex + ": " + choice));
+          div.appendChild(label);
+        });
+
+        form.appendChild(div);
+      });
+    }
+
+    async function submitAnswer() {
+      try {
+        if (!currentQuiz || !currentQuiz.questions) {
+          show({ error: "先にクイズを読み込んでください。" });
+          return;
+        }
+
+        const answers = {};
+
+        currentQuiz.questions.forEach(q => {
+          const checked = document.querySelector("input[name='" + q.question_id + "']:checked");
+          if (checked) {
+            answers[q.question_id] = Number(checked.value);
+          }
+        });
+
+        show("回答送信中...");
+
+        const body = await callApi({
+          action: "submit_answer",
+          quiz_id: currentQuiz.quiz_id,
+          student_id: document.getElementById("studentId").value,
+          student_name: document.getElementById("studentName").value,
+          answers: answers
+        });
+
+        show(body);
+      } catch (e) {
+        show({ error: e.message });
+      }
+    }
+
+    async function getResults() {
+      try {
+        const quizId = document.getElementById("resultsQuizId").value.trim();
+
+        if (!quizId) {
+          show({ error: "quiz_idを入力してください。" });
+          return;
+        }
+
+        show("結果分析中...");
+
+        const body = await callApi({
+          action: "get_results",
+          quiz_id: quizId
+        });
+
+        show(body);
+      } catch (e) {
+        show({ error: e.message });
+      }
+    }
+
+    function escapeHtml(str) {
+      return String(str)
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,117 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: Lecture feedback and quiz generator MVP backend
+
+Parameters:
+  BedrockProfileId:
+    Type: String
+    Description: Bedrock inference profile ID or ARN used by Converse API
+  AllowedOrigin:
+    Type: String
+    Default: http://localhost:8000
+    Description: Exact frontend Origin allowed by Lambda Function URL CORS
+
+Globals:
+  Function:
+    Runtime: python3.13
+    Architectures:
+      - x86_64
+    MemorySize: 1024
+    Timeout: 120
+    Tracing: Active
+
+Resources:
+  PdfBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+
+  QuizTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: quiz_id
+          AttributeType: S
+      KeySchema:
+        - AttributeName: quiz_id
+          KeyType: HASH
+      SSESpecification:
+        SSEEnabled: true
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: true
+
+  SubmissionTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: quiz_id
+          AttributeType: S
+        - AttributeName: student_id
+          AttributeType: S
+      KeySchema:
+        - AttributeName: quiz_id
+          KeyType: HASH
+        - AttributeName: student_id
+          KeyType: RANGE
+      SSESpecification:
+        SSEEnabled: true
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: true
+
+  QuizFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ../backend/
+      Handler: lambda_function.handler
+      Environment:
+        Variables:
+          QUIZ_TABLE: !Ref QuizTable
+          SUBMISSION_TABLE: !Ref SubmissionTable
+          PDF_BUCKET: !Ref PdfBucket
+          BEDROCK_PROFILE_ID: !Ref BedrockProfileId
+      FunctionUrlConfig:
+        AuthType: NONE
+        InvokeMode: BUFFERED
+        Cors:
+          AllowOrigins:
+            - !Ref AllowedOrigin
+          AllowMethods:
+            - POST
+          AllowHeaders:
+            - content-type
+          MaxAge: 600
+      Policies:
+        - S3CrudPolicy:
+            BucketName: !Ref PdfBucket
+        - DynamoDBCrudPolicy:
+            TableName: !Ref QuizTable
+        - DynamoDBCrudPolicy:
+            TableName: !Ref SubmissionTable
+        - Statement:
+            - Effect: Allow
+              Action:
+                - bedrock:InvokeModel
+              Resource: '*'
+
+Outputs:
+  QuizFunctionName:
+    Value: !Ref QuizFunction
+  QuizFunctionUrl:
+    Value: !GetAtt QuizFunctionUrl.FunctionUrl
+  PdfBucketName:
+    Value: !Ref PdfBucket
+  QuizTableName:
+    Value: !Ref QuizTable
+  SubmissionTableName:
+    Value: !Ref SubmissionTable
+

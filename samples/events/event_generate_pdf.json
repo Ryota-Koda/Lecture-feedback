@@ -1,0 +1,7 @@
+{
+  "action": "generate_quiz_from_pdf",
+  "title": "Biology Chapter 1: The Study of Life",
+  "s3_key": "pdfs/biology2e-chapter1-20260709075354.pdf",
+  "num_questions": 3,
+  "max_chars": 12000
+}
