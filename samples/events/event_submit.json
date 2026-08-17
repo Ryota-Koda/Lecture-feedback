@@ -1,0 +1,11 @@
+{
+  "action": "submit_answer",
+  "quiz_id": "quiz_REPLACE_ME",
+  "student_id": "student_example_001",
+  "student_name": "Example Student",
+  "answers": {
+    "q1": 0,
+    "q2": 1,
+    "q3": 2
+  }
+}

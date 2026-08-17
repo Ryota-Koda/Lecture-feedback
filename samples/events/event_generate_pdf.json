@@ -1,0 +1,7 @@
+{
+  "action": "generate_quiz_from_pdf",
+  "title": "PDF Lecture",
+  "s3_key": "pdfs/example.pdf",
+  "num_questions": 3,
+  "max_chars": 12000
+}
