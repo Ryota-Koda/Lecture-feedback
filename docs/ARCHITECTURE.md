@@ -19,7 +19,10 @@ LambdaはJSONの`action`フィールドで処理を切り替えます。
 
 ```mermaid
 flowchart TD
-    UI["Amplify Hosting"] --> URL["Lambda Function URL"]
+    HOME["入口画面"] --> TEACHER["教員用画面"]
+    HOME --> STUDENT["学生用画面"]
+    TEACHER --> URL["Lambda Function URL"]
+    STUDENT --> URL
     URL --> FN["Quiz Lambda"]
     FN --> BR["Amazon Bedrock"]
     FN --> S3["Amazon S3"]
@@ -44,15 +47,14 @@ flowchart TD
 - ブラウザからのPDF送信はBase64方式であり、大きいファイルには適さない。
 - PDF本文は指定された`max_chars`で切り詰めてからBedrockへ送る。
 - 結果分析は取得のたびにBedrockを呼び出し、キャッシュしていない。
-- Lambda Function URLはMVPでは認証なしで、CORSはAmplify Originに限定する。
+- 教員用・学生用の表示は分離しているが、講義内MVPのためログインや権限管理は行わない。
+- Lambda Function URLは認証なしで、CORSはAmplify Originに限定する。
 - `backend/`をGitHubへpushしても、既存Lambdaは自動更新されない。
 
 ## 次段階の改善候補
 
-1. CognitoまたはAPI Gatewayによる認証・認可
-2. 教員画面と学生画面の分離
-3. S3 presigned URLによるPDFアップロード
-4. 許可されたS3 prefixの検証
-5. 結果分析のキャッシュ
-6. Textract等によるOCR
-7. LambdaバックエンドのCI/CD
+1. S3 presigned URLによるPDFアップロード
+2. 許可されたS3 prefixの検証
+3. 結果分析のキャッシュ
+4. Textract等によるOCR
+5. LambdaバックエンドのCI/CD

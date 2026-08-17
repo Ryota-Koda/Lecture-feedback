@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="共有された小テストに回答する学生用画面です。">
+  <title>学生用 | Lecture Feedback</title>
+  <link rel="stylesheet" href="css/style.css">
+  <script src="js/config.js" defer></script>
+  <script src="js/api.js" defer></script>
+  <script src="js/student.js" defer></script>
+</head>
+<body class="student-page">
+  <header class="site-header">
+    <a class="brand" href="index.html" aria-label="Lecture Feedback ホーム">
+      <span class="brand-mark" aria-hidden="true">LF</span>
+      <span>Lecture Feedback</span>
+    </a>
+    <nav class="header-nav" aria-label="メインナビゲーション">
+      <a class="nav-link" href="teacher.html">教員用</a>
+      <a class="nav-link active" href="student.html" aria-current="page">学生用</a>
+    </nav>
+  </header>
+
+  <main class="app-main student-main">
+    <section class="page-heading">
+      <div>
+        <p class="eyebrow student-eyebrow">FOR STUDENTS</p>
+        <h1>小テストに回答</h1>
+        <p>教員から共有された小テストを読み込み、すべての問題に回答してください。</p>
+      </div>
+      <span class="role-badge student-badge">学生用画面</span>
+    </section>
+
+    <div id="studentStatus" class="status-message" role="status" aria-live="polite" hidden></div>
+
+    <section id="quizLookupSection" class="panel compact-panel" aria-labelledby="lookup-heading">
+      <div class="panel-heading">
+        <div>
+          <span class="step-number student-step">1</span>
+          <h2 id="lookup-heading">小テストを読み込む</h2>
+        </div>
+        <p>共有URLから開いた場合、quiz_idは自動入力されます。</p>
+      </div>
+
+      <form id="quizLookupForm" class="inline-form">
+        <div class="field-group grow-field">
+          <label for="quizId">quiz_id</label>
+          <input id="quizId" type="text" placeholder="quiz_xxxxxxxxxxxx" required>
+        </div>
+        <button id="loadQuizButton" class="button button-student" type="submit">小テストを読み込む</button>
+      </form>
+    </section>
+
+    <section id="studentQuizSection" class="panel" aria-labelledby="quiz-title-heading" hidden>
+      <div class="panel-heading">
+        <div>
+          <span class="step-number student-step">2</span>
+          <h2 id="quiz-title-heading">回答する</h2>
+        </div>
+        <p id="quizQuestionCount"></p>
+      </div>
+
+      <div class="quiz-title-box">
+        <span>小テスト</span>
+        <h3 id="studentQuizTitle"></h3>
+      </div>
+
+      <form id="answerForm">
+        <div class="form-grid two-columns student-info-grid">
+          <div class="field-group">
+            <label for="studentId">学生ID <span class="required-label">必須</span></label>
+            <input id="studentId" type="text" autocomplete="off" required maxlength="80" placeholder="例：student_001">
+          </div>
+          <div class="field-group">
+            <label for="studentName">名前 <span class="optional-label">任意</span></label>
+            <input id="studentName" type="text" autocomplete="name" maxlength="80" placeholder="例：学生A">
+          </div>
+        </div>
+
+        <div id="studentQuizQuestions" class="question-list student-question-list"></div>
+
+        <button id="submitAnswersButton" class="button button-student button-large" type="submit">
+          回答を送信
+        </button>
+      </form>
+    </section>
+
+    <section id="studentResultSection" class="panel result-panel" aria-labelledby="student-result-heading" hidden>
+      <div class="result-hero">
+        <span class="result-kicker">採点結果</span>
+        <h2 id="student-result-heading"><span id="studentScore">0</span> / <span id="studentMaxScore">0</span></h2>
+        <p id="studentResultMessage"></p>
+      </div>
+      <div id="studentAnswerDetails" class="answer-details"></div>
+    </section>
+  </main>
+
+  <footer class="site-footer">Lecture Feedback MVP</footer>
+</body>
+</html>
