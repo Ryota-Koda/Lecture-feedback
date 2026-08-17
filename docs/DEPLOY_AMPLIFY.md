@@ -24,7 +24,16 @@ GitHubを使用しない場合は、`frontend/`の**中身**をZIP化します�
 
 ```text
 frontend.zip
-└─ index.html
+├─ index.html
+├─ teacher.html
+├─ student.html
+├─ css/
+│  └─ style.css
+└─ js/
+   ├─ config.js
+   ├─ api.js
+   ├─ teacher.js
+   └─ student.js
 ```
 
 このZIPをAmplifyの「Gitを使用せずにデプロイ」からアップロードします。リポジトリ全体のZIPはアップロードしません。
@@ -50,13 +59,15 @@ aws lambda update-function-url-config \
 
 ## デプロイ後確認
 
-1. テキストから3問生成できる。
-2. 小さいテキストPDFから3問生成できる。
-3. `quiz_id` で学生用問題を取得できる。
-4. 回答を送信し、採点結果が返る。
-5. 結果分析が取得できる。
-6. ブラウザの開発者ツールにCORSエラーがない。
-7. CloudWatch Logsに500エラーがない。
+1. 入口画面から教員用・学生用の両方を開ける。
+2. 教員用画面でテキストから3問生成できる。
+3. 小さいテキストPDFから3問生成できる。
+4. 生成後に学生用URLをコピーできる。
+5. 学生用URLを開くと、対象の小テストが自動的に読み込まれる。
+6. 回答を送信し、個人の採点結果と解説が表示される。
+7. 教員用画面で回答結果と分析を取得できる。
+8. ブラウザの開発者ツールにCORSエラーがない。
+9. CloudWatch Logsに500エラーがない。
 
 ## 更新対象の違い
 

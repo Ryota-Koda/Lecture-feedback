@@ -1,0 +1,198 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="講義資料から小テストを作成し、回答結果を分析する教員用画面です。">
+  <title>教員用 | Lecture Feedback</title>
+  <link rel="stylesheet" href="css/style.css">
+  <script src="js/config.js" defer></script>
+  <script src="js/api.js" defer></script>
+  <script src="js/teacher.js" defer></script>
+</head>
+<body>
+  <header class="site-header">
+    <a class="brand" href="index.html" aria-label="Lecture Feedback ホーム">
+      <span class="brand-mark" aria-hidden="true">LF</span>
+      <span>Lecture Feedback</span>
+    </a>
+    <nav class="header-nav" aria-label="メインナビゲーション">
+      <a class="nav-link active" href="teacher.html" aria-current="page">教員用</a>
+      <a class="nav-link" href="student.html">学生用</a>
+    </nav>
+  </header>
+
+  <main class="app-main">
+    <section class="page-heading">
+      <div>
+        <p class="eyebrow">FOR TEACHERS</p>
+        <h1>小テストの作成と回答分析</h1>
+        <p>講義資料を入力して小テストを作成し、学生用URLを共有できます。</p>
+      </div>
+      <span class="role-badge teacher-badge">教員用画面</span>
+    </section>
+
+    <div id="teacherStatus" class="status-message" role="status" aria-live="polite" hidden></div>
+
+    <section class="panel" aria-labelledby="create-heading">
+      <div class="panel-heading">
+        <div>
+          <span class="step-number">1</span>
+          <h2 id="create-heading">教材から小テストを作成</h2>
+        </div>
+        <p>テキストまたはPDFのどちらかを選択してください。</p>
+      </div>
+
+      <form id="createQuizForm">
+        <div class="form-grid two-columns">
+          <div class="field-group grow-field">
+            <label for="lectureTitle">講義タイトル</label>
+            <input id="lectureTitle" name="title" type="text" value="生成AI入門" required maxlength="120">
+          </div>
+          <div class="field-group number-field">
+            <label for="numQuestions">問題数</label>
+            <input id="numQuestions" name="num_questions" type="number" value="3" min="1" max="10" required>
+          </div>
+        </div>
+
+        <fieldset class="source-selector">
+          <legend>教材の種類</legend>
+          <div class="segmented-control">
+            <label>
+              <input type="radio" name="sourceType" value="text" checked>
+              <span>テキスト入力</span>
+            </label>
+            <label>
+              <input type="radio" name="sourceType" value="pdf">
+              <span>PDFアップロード</span>
+            </label>
+          </div>
+        </fieldset>
+
+        <div id="textSourcePanel" class="source-panel">
+          <div class="field-group">
+            <label for="lectureText">講義テキスト</label>
+            <textarea id="lectureText" name="lecture_text" rows="9" required>生成AIは、大量のデータから学習したモデルを用いて、文章、画像、音声、プログラムなどの新しいコンテンツを生成する技術である。大規模言語モデルは、入力された文章の文脈を理解し、次に続く単語を予測することで自然な文章を生成する。大学教育では、教材作成、質問応答、レポートのフィードバック、小テスト生成などに応用できる。一方で、生成AIは誤った情報をもっともらしく出力することがあり、この現象はハルシネーションと呼ばれる。</textarea>
+          </div>
+        </div>
+
+        <div id="pdfSourcePanel" class="source-panel" hidden>
+          <div class="field-group">
+            <label for="pdfFile">PDFファイル</label>
+            <input id="pdfFile" name="pdf_file" type="file" accept="application/pdf,.pdf">
+            <p class="field-note">文字を選択できるPDFを使用してください。画像だけのPDFに対するOCRは未対応です。</p>
+          </div>
+        </div>
+
+        <button id="generateButton" class="button button-primary button-large" type="submit">
+          小テストを生成
+        </button>
+      </form>
+    </section>
+
+    <section id="generatedQuizSection" class="panel" aria-labelledby="generated-heading" hidden>
+      <div class="panel-heading">
+        <div>
+          <span class="step-number">2</span>
+          <h2 id="generated-heading">生成された小テスト</h2>
+        </div>
+        <p>問題と正解を確認し、学生用URLを共有してください。</p>
+      </div>
+
+      <div class="quiz-meta">
+        <div>
+          <span class="meta-label">タイトル</span>
+          <strong id="generatedTitle"></strong>
+        </div>
+        <div>
+          <span class="meta-label">quiz_id</span>
+          <code id="generatedQuizId"></code>
+        </div>
+      </div>
+
+      <div class="share-box">
+        <label for="studentShareUrl">学生用URL</label>
+        <div class="share-row">
+          <input id="studentShareUrl" type="text" readonly>
+          <button id="copyShareUrlButton" class="button button-secondary compact-button" type="button">URLをコピー</button>
+          <a id="openStudentPageLink" class="button button-ghost compact-button" href="student.html" target="_blank" rel="noopener">学生画面を確認</a>
+        </div>
+        <p id="copyFeedback" class="field-note" aria-live="polite"></p>
+      </div>
+
+      <div id="teacherQuizPreview" class="question-list"></div>
+    </section>
+
+    <section class="panel" aria-labelledby="results-heading">
+      <div class="panel-heading">
+        <div>
+          <span class="step-number">3</span>
+          <h2 id="results-heading">回答結果と講義分析</h2>
+        </div>
+        <p>生成済みのquiz_idを入力して、最新の結果を取得できます。</p>
+      </div>
+
+      <form id="resultsForm" class="inline-form">
+        <div class="field-group grow-field">
+          <label for="resultsQuizId">quiz_id</label>
+          <input id="resultsQuizId" type="text" placeholder="quiz_xxxxxxxxxxxx" required>
+        </div>
+        <button id="refreshResultsButton" class="button button-secondary" type="submit">結果を取得・更新</button>
+      </form>
+
+      <div id="resultsEmpty" class="empty-state">
+        <strong>まだ結果を読み込んでいません</strong>
+        <p>小テストを生成するか、既存のquiz_idを入力してください。</p>
+      </div>
+
+      <div id="resultsContent" hidden>
+        <div class="summary-grid">
+          <article class="summary-card">
+            <span>回答者数</span>
+            <strong id="submissionCount">0人</strong>
+          </article>
+          <article class="summary-card">
+            <span>平均点</span>
+            <strong id="averageScore">0 / 0</strong>
+          </article>
+          <article class="summary-card">
+            <span>平均正答率</span>
+            <strong id="averageAccuracy">0%</strong>
+          </article>
+        </div>
+
+        <div class="results-grid">
+          <section class="subpanel" aria-labelledby="question-stats-heading">
+            <h3 id="question-stats-heading">問題ごとの正答率</h3>
+            <div id="questionStats"></div>
+          </section>
+
+          <section class="subpanel analysis-panel" aria-labelledby="analysis-heading">
+            <h3 id="analysis-heading">AIによる講義分析</h3>
+            <div id="analysisText" class="analysis-text"></div>
+          </section>
+        </div>
+
+        <section class="subpanel" aria-labelledby="student-scores-heading">
+          <h3 id="student-scores-heading">学生別の結果</h3>
+          <div class="table-scroll">
+            <table>
+              <thead>
+                <tr>
+                  <th>学生ID</th>
+                  <th>名前</th>
+                  <th>得点</th>
+                  <th>提出日時</th>
+                </tr>
+              </thead>
+              <tbody id="studentScores"></tbody>
+            </table>
+          </div>
+        </section>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">Lecture Feedback MVP</footer>
+</body>
+</html>

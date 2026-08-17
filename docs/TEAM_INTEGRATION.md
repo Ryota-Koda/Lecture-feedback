@@ -36,8 +36,8 @@ flowchart TD
 - DynamoDBをAmplify Dataまたは専用テーブルとして定義
 - `BEDROCK_PROFILE_ID` をAmplifyのsecret / environment configurationで注入
 - Lambda IAMにStorage、Data、Bedrock権限を付与
-- Cognitoユーザーと `student_id` を結び付ける
-- 教員だけが `get_results` を実行できるよう認可する
+- 講義内MVPでは、既存と同様に学生が `student_id` を入力する
+- 教員用と学生用は画面を分けるが、ログインや権限管理は追加しない
 - スキャンPDFを扱うならTextract等のOCRを追加
 
 ## 共有すべき成果物
@@ -51,4 +51,3 @@ flowchart TD
 - データ保存期間と削除方針
 
 単独のAmplify URLは動作確認には有効ですが、コード統合にはこのソース一式が必要です。
-
